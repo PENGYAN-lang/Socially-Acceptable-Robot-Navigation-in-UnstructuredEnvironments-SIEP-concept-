@@ -1,0 +1,54 @@
+# SIEP demo configuration
+# Uses the Stimuli-Induced Equilibrium Point planner instead of sampling MPC.
+seed: 7
+sim:
+  dt: 0.05
+  max_steps: 2000
+  gui: false
+  record_video: false
+  out_dir: runs
+world:
+  size_xy: [20.0, 20.0]
+  obstacles:
+    - {pos: [6.0, 6.0, 0.5], half_extents: [0.6, 2.0, 0.5]}
+    - {pos: [12.0, 9.0, 0.6], half_extents: [1.5, 0.6, 0.6]}
+  ramps:
+    - {pos: [9.0, 3.5, 0.0], size: [4.0, 3.0, 0.2], pitch_deg: 12}
+robot:
+  start: [1.5, 1.5, 0.0]
+  goal: [18.0, 18.0, 0.0]
+  radius: 0.25
+  height: 0.30
+  max_v: 1.2
+  max_w: 1.8
+lidar:
+  n_az: 180
+  n_el: 5
+  max_range: 8.0
+  el_deg: [-10, -5, 0, 5, 10]
+pedestrians:
+  count: 6
+  speed_range: [0.3, 1.0]
+  radius: 0.3
+  personal_space:
+    sigma_front: 1.6
+    sigma_side: 0.9
+    sigma_back: 0.7
+planner:
+  # --- Goal attraction ---------------------------------------------------
+  k_goal: 1.0          # Cruise speed / goal force magnitude [m/s]
+  sigma_goal: 3.0      # Saturation distance for tanh profile [m]
+  # --- Obstacle repulsion (LiDAR-based) ----------------------------------
+  k_obs: 2.5           # Obstacle force scale
+  obs_influence: 2.5   # Maximum influence radius [m]
+  # --- Predictive personal-space repulsion --------------------------------
+  k_ps: 2.0            # Personal-space force scale
+  ps_horizon: 1.5      # Look-ahead horizon [s]
+  ps_dt: 0.1           # Prediction integration step [s]
+  # --- Velocity-alignment stimulus (crowd-flow following) -----------------
+  k_align: 0.3         # Alignment force scale
+  align_radius: 3.0    # Effective alignment radius [m]
+  align_cone_deg: 60.0 # Directional cone half-angle [deg]
+  # --- Heading controller -------------------------------------------------
+  k_yaw: 2.5           # Proportional heading-error gain
+  heading_slowdown: 0.5 # Speed reduction factor during turns (0=none, 1=full)
