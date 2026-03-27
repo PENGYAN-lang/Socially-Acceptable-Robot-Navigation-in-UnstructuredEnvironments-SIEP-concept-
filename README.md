@@ -159,3 +159,53 @@ To increase scenario complexity, edit the YAML:
 - `world.obstacles` — add boxes/ramps
 - `lidar.n_az` — denser LiDAR
 - `ps_horizon` — longer prediction horizon
+
+---
+
+## 在启智 (OpenI) 平台上运行
+
+> **推荐方式：使用 Jupyter Notebook，全程无需手动敲命令。**
+
+### 方式 A：直接打开 Notebook（最简单）
+
+1. 登录 [启智 (OpenI)](https://openi.pcl.ac.cn/)，进入你的项目。
+2. 在顶部导航选择 **「云脑」→「调试任务」**（或 **JupyterLab**）。
+3. 启动一个 CPU 或 GPU 调试实例（CPU 实例已够用于本仿真）。
+4. 调试实例启动后，打开终端，执行：
+
+   ```bash
+   git clone https://github.com/PENGYAN-lang/Socially-Acceptable-Robot-Navigation-in-UnstructuredEnvironments-SIEP-concept-.git SocialNav3D
+   ```
+
+5. 在 JupyterLab 左侧文件浏览器里，依次进入 `SocialNav3D/`，双击打开 **`SIEP_demo.ipynb`**。
+6. 顶部菜单选 **`Run → Run All Cells`**，等待几分钟，轨迹图会直接显示在 Notebook 里。
+
+### 方式 B：命令行运行
+
+在调试实例的终端里依次执行：
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/PENGYAN-lang/Socially-Acceptable-Robot-Navigation-in-UnstructuredEnvironments-SIEP-concept-.git SocialNav3D
+cd SocialNav3D
+
+# 2. 安装依赖（约 1-2 分钟）
+pip install -r requirements.txt
+
+# 3. 运行 SIEP 仿真
+python run_demo.py --config social_nav3d/configs/siep_demo.yaml --planner siep
+
+# 4. 对比原始 MPC（可选）
+python run_demo.py --config social_nav3d/configs/default.yaml --planner mpc
+```
+
+运行结果（轨迹图）保存在 `runs/trajectory.png`，可在 JupyterLab 文件浏览器里直接预览。
+
+### 常见问题
+
+| 问题 | 解决办法 |
+|---|---|
+| `pybullet` 安装失败 | 先 `pip install --upgrade pip` 再重试 |
+| `ModuleNotFoundError: social_nav3d` | 确保在项目根目录（有 `run_demo.py` 的目录）运行 |
+| 运行时报 `display` 错误 | 仿真不需要 GUI，确认命令里没有 `--gui` 参数 |
+| 调试实例资源不够 | 在启智创建任务时选择 CPU ≥ 4 核，内存 ≥ 8 GB |
