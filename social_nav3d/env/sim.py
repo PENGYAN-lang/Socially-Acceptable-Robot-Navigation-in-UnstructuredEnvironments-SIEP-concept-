@@ -12,7 +12,6 @@ import pybullet_data
 from ..utils.geometry import Pose2, integrate_diff_drive
 from ..utils.social import PersonalSpace
 
-
 @dataclass
 class Pedestrian:
     body_id: int
@@ -22,14 +21,12 @@ class Pedestrian:
     vel: np.ndarray
     ps: PersonalSpace
 
-
 @dataclass
 class LidarConfig:
     n_az: int
     n_el: int
     max_range: float
     el_deg: List[float]
-
 
 class SocialNavSim:
     def __init__(self, cfg: dict):
@@ -235,7 +232,7 @@ class SocialNavSim:
         ps_cfg = self.cfg['pedestrians']['personal_space']
         ps = PersonalSpace(**ps_cfg)
 
-        # Visual “human-ish” shapes (no mesh dependency)
+        # Visual "human-ish" shapes (no mesh dependency)
         # base collision: capsule
         col = p.createCollisionShape(p.GEOM_CAPSULE, radius=rad, height=0.9, physicsClientId=self.client)
 
@@ -389,6 +386,41 @@ class SocialNavSim:
         hit_pos = np.array([r[3] for r in results], dtype=float)
         return hit_frac, hit_pos
 
+    def get_lidar_directional_2d(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return per-ray distances and world-frame azimuth angles for the
+        SIEP planner.
+
+        Uses only the horizontal (zero-elevation or nearest-to-zero) LiDAR
+        ring so that the 2-D force computation stays in the ground plane.
+        Rays with no hit carry the sensor's ``max_range`` value.
+
+        Returns:
+            distances:    (n_az,) array of distances in metres.
+            angles_world: (n_az,) array of azimuth angles in world frame [rad].
+        """
+        # Identify the elevation ring closest to horizontal
+        el_arr = np.array(self.lidar.el_deg, dtype=float)
+        h_idx = int(np.argmin(np.abs(el_arr)))  # index of most-horizontal ring
+
+        hit_frac, _ = self.get_lidar_scan()
+        # get_lidar_scan stacks rays as [el0·az0…az_{n-1}, el1·az0…, …]
+        n_az = self.lidar.n_az
+        # Slice the horizontal ring
+        start = h_idx * n_az
+        ring_frac = hit_frac[start: start + n_az]
+
+        distances = ring_frac * self.lidar.max_range
+
+        # Compute world-frame azimuth angles (same formula as get_lidar_scan)
+        base_pos, base_orn = p.getBasePositionAndOrientation(
+            self.robot_id, physicsClientId=self.client
+        )
+        yaw = p.getEulerFromQuaternion(base_orn)[2]
+        az = np.linspace(-math.pi, math.pi, n_az, endpoint=False)
+        angles_world = az + yaw
+
+        return distances, angles_world
+
     def apply_control(self, v: float, w: float):
         v = float(np.clip(v, -self.max_v, self.max_v))
         w = float(np.clip(w, -self.max_w, self.max_w))
@@ -432,10 +464,11 @@ class SocialNavSim:
         ]
 
     def lidar_min_distance(self) -> float:
-        _, dists = self.get_lidar_scan()
-        if dists.size == 0:
+        """Return the distance to the closest detected obstacle [m]."""
+        hit_frac, _ = self.get_lidar_scan()
+        if hit_frac.size == 0:
             return float('inf')
-        return float(dists.min())
+        return float(hit_frac.min() * self.lidar.max_range)
 
     def reached_goal(self, tol: float = 0.5) -> bool:
         d = np.linalg.norm(self.robot_pose.xy() - self.goal_xy)
